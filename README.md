@@ -3,6 +3,13 @@
 This document provides a full preview of how to build and configure an Azure DevOps dashboard widget named **Active PR Preview Widget**. The widget displays active pull requests across selected projects and supports rich filtering via a configuration panel.
 
 ---
+### Marketplace Link
+
+You can find the extension at the following address:
+
+[https://marketplace.visualstudio.com/items?itemName=mustafaguler.active-pr-preview-widget](https://marketplace.visualstudio.com/items?itemName=mustafaguler.active-pr-preview-widget)
+
+---
 
 ## 🧰 Prerequisites
 
