@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "name": "Active PR Preview Widget",
   "description": "A dashboard widget to display active pull requests across selected projects or teams.",
-  "publisher": "mustafa",
+  "publisher": "mustafaguler",
   "public": true,
   "targets": [
     {
