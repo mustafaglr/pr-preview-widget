@@ -179,5 +179,5 @@ VSS.require(["TFS/Dashboards/WidgetHelpers"], function (WidgetHelpers) {
 ## ✅ Final Notes
 
 * The widget is designed to be responsive and informative.
-* Branch and reviewer filters make it ide al for multi-team environments.
+* Branch and reviewer filters make it ideal for multi-team environments.
 * Project selection via regex or dropdown ensures flexibility.
