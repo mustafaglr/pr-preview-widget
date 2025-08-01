@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PR Overview Widget Configuration</title>
+    <title>PR Preview Widget Configuration</title>
     <script src="scripts/VSS.SDK.min.js"></script>
     <style>
         body, html, .widget-configuration {
@@ -170,7 +170,7 @@
             const sourceBranchRegexInput = document.getElementById("sourceBranchRegex");
             const targetBranchRegexInput = document.getElementById("targetBranchRegex");
 
-            VSS.register("active-pr-overview-widget.Configuration", function () {
+            VSS.register("active-pr-preview-widget.Configuration", function () {
                 WidgetHelpers.IncludeWidgetConfigurationStyles();
 
                 const toggleProjectListState = () => {

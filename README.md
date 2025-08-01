@@ -1,6 +1,6 @@
-# Azure DevOps Extension: Active PR Overview Widget
+# Azure DevOps Extension: Active PR Preview Widget
 
-This document provides a full overview of how to build and configure an Azure DevOps dashboard widget named **Active PR Overview Widget**. The widget displays active pull requests across selected projects and supports rich filtering via a configuration panel.
+This document provides a full preview of how to build and configure an Azure DevOps dashboard widget named **Active PR Preview Widget**. The widget displays active pull requests across selected projects and supports rich filtering via a configuration panel.
 
 ---
 
@@ -107,9 +107,9 @@ Defines the widget and configuration contribution:
 
 ```json
 {
-  "id": "active-pr-overview-widget",
+  "id": "active-pr-preview-widget",
   "version": "1.0.12",
-  "name": "Active PR Overview Widget",
+  "name": "Active PR Preview Widget",
   "publisher": "mustafa",
   "targets": [ { "id": "Microsoft.VisualStudio.Services" } ],
   "contributions": [ ... ],

@@ -1,8 +1,8 @@
 {
   "manifestVersion": 1,
-  "id": "active-pr-overview-widget",
+  "id": "active-pr-preview-widget",
   "version": "1.0.0",
-  "name": "Active PR Overview Widget",
+  "name": "Active PR Preview Widget",
   "description": "A dashboard widget to display active pull requests across selected projects or teams.",
   "publisher": "mustafa",
   "public": true,
@@ -20,27 +20,27 @@
   ],
   "contributions": [
     {
-      "id": "active-pr-overview-widget.Configuration",
+      "id": "active-pr-preview-widget.Configuration",
       "type": "ms.vss-dashboards-web.widget-configuration",
       "targets": [
         "ms.vss-dashboards-web.widget-configuration"
       ],
       "properties": {
-        "name": "Active PR Overview Configuration",
-        "description": "Select projects or teams to filter pull request overview.",
+        "name": "Active PR Preview Configuration",
+        "description": "Select projects or teams to filter pull request preview.",
         "uri": "configuration.html"
       }
     },
     {
-      "id": "active-pr-overview-widget",
+      "id": "active-pr-preview-widget",
       "type": "ms.vss-dashboards-web.widget",
       "description": "Displays active pull requests from configured projects or teams.",
       "targets": [
         "ms.vss-dashboards-web.widget-catalog",
-        ".active-pr-overview-widget.Configuration"
+        ".active-pr-preview-widget.Configuration"
       ],
       "properties": {
-        "name": "Active PR Overview",
+        "name": "Active PR Preview",
         "description": "Displays active pull requests from configured projects or teams.",
         "catalogIconUrl": "images/icon.png",
         "previewImageUrl": "images/preview.png",
@@ -75,6 +75,15 @@
     "details": {
       "path": "sum.md"
     }
+  },
+  "links": {
+    "support": {
+      "uri": "https://github.com/mustafaglr/pr-preview-widget"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "uri": "https://github.com/mustafaglr/pr-preview-widget"
   },
   "tags": [
     "Dashboard", "Widget", "Pull Request", "Code", "Collaboration"

@@ -1,4 +1,4 @@
-# Active Pull Requests Overview Widget
+# Active Pull Requests Preview Widget
 
 A VSTS (Azure DevOps) dashboard widget that displays **active pull requests** across your projects or teams.
 
