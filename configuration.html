@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PR Overview Widget Configuration</title>
+    <script src="scripts/VSS.SDK.min.js"></script>
+    <style>
+        body, html, .widget-configuration {
+            overflow: visible !important;
+        }
+        .widget-configuration {
+            min-height: 400px;
+        }
+        input:disabled {
+            background-color: #f5f5f5;
+            color: #999;
+            cursor: not-allowed;
+        }
+
+        .input,
+        .checkbox,
+        .dropdown {
+            margin-bottom: 20px;
+        }
+
+        /* Yeni eklenen stiller */
+        .branch-filter-group {
+            display: flex; /* Inputları yan yana getir */
+            justify-content: space-between; /* Sağa ve sola yasla */
+            gap: 15px; /* Inputlar arasında boşluk bırak */
+            margin-bottom: 20px;
+        }
+
+        .branch-filter-group .input {
+            flex: 1; /* Inputların eşit genişlikte yer kaplamasını sağla */
+            margin-bottom: 0; /* İç inputların alt boşluğunu sıfırla */
+        }
+
+        .branch-filter-group label {
+            display: block; /* Label'ı inputun üzerine al */
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        /* Yeni eklenen stiller sonu */
+
+        .custom-dropdown-container {
+            position: relative;
+            display: block; 
+            margin-top: 5px; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            font-size: 14px; 
+        }
+
+        .custom-dropdown-header {
+            padding: 8px 10px;
+            border: 1px solid #ccc;
+            background-color: #f0f0f0;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%; 
+            box-sizing: border-box; 
+        }
+
+        .custom-dropdown-header:hover {
+            background-color: #e0e0e0;
+        }
+
+        .custom-dropdown-content {
+            display: none; 
+            position: absolute;
+            background-color: #ffffff;
+            border: 1px solid #ccc;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1000; 
+            max-height: 200px; 
+            overflow-y: auto; 
+            width: 100%; 
+            box-sizing: border-box; 
+        }
+
+        .custom-dropdown-content.show {
+            display: block !important; 
+        }
+
+        .dropdown-item-checkbox {
+            padding: 5px 10px;
+            display: flex; 
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .dropdown-item-checkbox:hover {
+            background-color: #e6f7ff; 
+        }
+
+        .dropdown-item-checkbox input[type="checkbox"] {
+            margin-right: 8px;
+        }
+
+        
+        .custom-dropdown-container.disabled .custom-dropdown-header {
+            background-color: #eaeaea;
+            cursor: not-allowed;
+            color: #888;
+        }
+        .custom-dropdown-container.disabled .custom-dropdown-content {
+            display: none; 
+        }
+        .custom-dropdown-container.disabled .dropdown-item-checkbox {
+            cursor: not-allowed;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <div class="widget-configuration">
+        <div class="checkbox">
+            <fieldset class="checkbox">
+                <input type="checkbox" id="includeAllProjects" name="includeAllProjects">
+                <label for="includeAllProjects">Include All Projects</label><br />
+            </fieldset>
+        </div>
+
+
+        <div class="input">
+            <label>Project Regex:</label>
+            <input type="text" id="allowedProjectsRegex" placeholder="e.g. ^MyProject-" />
+        </div>
+
+        <div class="dropdown">
+            <label>Projects:</label>
+            <div id="projectDropdownContainer" class="custom-dropdown-container">
+                <div class="custom-dropdown-header" id="projectDropdownHeader">Select Project <span style="float: right;">&#9660;</span></div>
+                <div class="custom-dropdown-content" id="projectDropdownContent">
+                </div>
+            </div>
+        </div>
+
+        <div class="input">
+            <label>Reviewer Team Filter:</label>
+            <input type="text" id="reviewerTeam" placeholder="e.g. devteam" />
+        </div>
+
+        <div class="branch-filter-group">
+            <div class="input">
+                <label for="sourceBranchRegex">Source Branch Regex:</label>
+                <input type="text" id="sourceBranchRegex" placeholder="All" />
+            </div>
+            <div class="input">
+                <label for="targetBranchRegex">Target Branch Regex:</label>
+                <input type="text" id="targetBranchRegex" placeholder="All" />
+            </div>
+        </div>
+        </div>
+
+    <script>
+        VSS.init({ explicitNotifyLoaded: true, usePlatformStyles: true, usePlatformScripts: true });
+
+        VSS.require(["TFS/Dashboards/WidgetHelpers", "TFS/Core/RestClient"], function (WidgetHelpers, TFS_Core) {
+            const includeAllProjectsCheckbox = document.getElementById("includeAllProjects");
+            const allowedProjectsRegexInput = document.getElementById("allowedProjectsRegex");
+            const reviewerTeamInput = document.getElementById("reviewerTeam");
+            const projectDropdownHeader = document.getElementById("projectDropdownHeader");
+            const projectDropdownContent = document.getElementById("projectDropdownContent");
+            const projectDropdownContainer = document.getElementById("projectDropdownContainer");
+
+            
+            const sourceBranchRegexInput = document.getElementById("sourceBranchRegex");
+            const targetBranchRegexInput = document.getElementById("targetBranchRegex");
+
+            VSS.register("active-pr-overview-widget.Configuration", function () {
+                WidgetHelpers.IncludeWidgetConfigurationStyles();
+
+                const toggleProjectListState = () => {
+                    const includeAll = includeAllProjectsCheckbox.checked;
+                    const regexFilled = allowedProjectsRegexInput.value.trim() !== "";
+
+                    const shouldDisable = includeAll || regexFilled;
+
+                    projectDropdownContainer.classList.toggle("disabled", shouldDisable);
+
+                    projectDropdownContent.querySelectorAll("input[type='checkbox']").forEach(cb => cb.disabled = shouldDisable);
+
+                    if (shouldDisable) {
+                        projectDropdownContent.classList.remove('show');
+                    }
+
+                    allowedProjectsRegexInput.disabled = includeAll;
+                };
+
+                return {
+                    load: async function (widgetSettings,widgetConfigurationContext) {
+                        const settings = JSON.parse(widgetSettings.customSettings.data || "{}");
+
+                        includeAllProjectsCheckbox.checked = settings.includeAllProjects || false;
+                        allowedProjectsRegexInput.value = settings.allowedProjectsRegex || "";
+                        reviewerTeamInput.value = settings.reviewerTeam || "";
+                        
+                        sourceBranchRegexInput.value = settings.sourceBranchRegex || "";
+                        targetBranchRegexInput.value = settings.targetBranchRegex || "";
+
+
+                        projectDropdownContent.innerHTML = "";
+
+                        let customSettings = {}; 
+
+                        const updateWidgetData = () => {
+                            const includeAll = includeAllProjectsCheckbox.checked;
+                            
+                            const projectCheckboxes = projectDropdownContent.querySelectorAll("input[type='checkbox']:checked");
+                            const selectedProjects = Array.from(projectCheckboxes).map(cb => cb.value);
+
+                            customSettings = {
+                                data: JSON.stringify({
+                                    includeAllProjects: includeAll,
+                                    allowedProjects: selectedProjects,
+                                    allowedProjectsRegex: allowedProjectsRegexInput.value.trim(),
+                                    reviewerTeam: reviewerTeamInput.value.trim(),
+                                    
+                                    sourceBranchRegex: sourceBranchRegexInput.value.trim(),
+                                    targetBranchRegex: targetBranchRegexInput.value.trim()
+                                })
+                            }
+
+                            var eventName = WidgetHelpers.WidgetEvent.ConfigurationChange;
+                            var eventArgs = WidgetHelpers.WidgetEvent.Args(customSettings);
+                            widgetConfigurationContext.notify(eventName, eventArgs);
+                            return customSettings; 
+                        };  
+
+                        const coreClient = TFS_Core.getClient();
+                        let projectRefs = [];
+                        try {
+                            projectRefs = await coreClient.getProjects({ top: 100 });
+                        } catch (error) {
+                            console.error("Error fetching projects:", error);
+                            projectDropdownContent.innerHTML = "<div class='p-2 text-red-600'>Error loading projects.</div>";
+                        }
+
+                        projectRefs.forEach(project => {
+                            const dropdownItem = document.createElement("div");
+                            dropdownItem.className = "dropdown-item-checkbox"; 
+
+                            const checkbox = document.createElement("input");
+                            checkbox.type = "checkbox";
+                            checkbox.id = `project_${project.id}`; 
+                            checkbox.value = project.name; 
+                            checkbox.checked = (settings.allowedProjects || []).includes(project.name);
+
+                            const label = document.createElement("label");
+                            label.htmlFor = `project_${project.id}`;
+                            label.textContent = project.name;
+
+                            dropdownItem.appendChild(checkbox);
+                            dropdownItem.appendChild(label);
+                            projectDropdownContent.appendChild(dropdownItem);
+
+                            checkbox.addEventListener("change", updateWidgetData);
+                        });
+
+                        toggleProjectListState();
+
+                        includeAllProjectsCheckbox.addEventListener("change", () => {
+                            toggleProjectListState();
+                            updateWidgetData();
+                        });
+
+                        allowedProjectsRegexInput.addEventListener("input", () => {
+                            toggleProjectListState();
+                            updateWidgetData();
+                        });
+
+                        reviewerTeamInput.addEventListener("input", updateWidgetData);
+                        
+                        
+                        sourceBranchRegexInput.addEventListener("input", updateWidgetData);
+                        targetBranchRegexInput.addEventListener("input", updateWidgetData);
+
+                        projectDropdownHeader.addEventListener('click', function() {
+                            if (!projectDropdownContainer.classList.contains('disabled')) {
+                                projectDropdownContent.classList.toggle('show');
+                            }
+                        });
+
+                        document.addEventListener('click', function(event) {
+                            if (!projectDropdownContainer.contains(event.target)) {
+                                projectDropdownContent.classList.remove('show');
+                            }
+                        });
+
+                        projectDropdownContent.addEventListener('click', function(event) {
+                            if (event.target.type === 'checkbox' || event.target.tagName === 'LABEL') {
+                                event.stopPropagation();
+                            }
+                        });
+
+                        return WidgetHelpers.WidgetStatusHelper.Success();
+                    },
+
+                    onSave: function () {
+                        const includeAll = includeAllProjectsCheckbox.checked;
+                        
+                        const projectCheckboxes = projectDropdownContent.querySelectorAll("input[type='checkbox']:checked");
+                        const selectedProjects = Array.from(projectCheckboxes).map(cb => cb.value);
+
+                        const customSettingsData  = {
+                            data: JSON.stringify({
+                                includeAllProjects: includeAll,
+                                allowedProjects: selectedProjects,
+                                allowedProjectsRegex: allowedProjectsRegexInput.value.trim(),
+                                reviewerTeam: reviewerTeamInput.value.trim(),
+                                
+                                sourceBranchRegex: sourceBranchRegexInput.value.trim(),
+                                targetBranchRegex: targetBranchRegexInput.value.trim()
+                            })
+                        }
+
+                        return WidgetHelpers.WidgetConfigurationSave.Valid(customSettingsData);
+                    }
+                };
+            });
+
+            VSS.notifyLoadSucceeded();
+        });
+    </script>
+</body>
+</html>

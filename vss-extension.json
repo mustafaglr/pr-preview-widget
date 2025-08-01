@@ -1,0 +1,86 @@
+{
+  "manifestVersion": 1,
+  "id": "active-pr-overview-widget",
+  "version": "1.0.0",
+  "name": "Active PR Overview Widget",
+  "description": "A dashboard widget to display active pull requests across selected projects or teams.",
+  "publisher": "mustafa",
+  "public": true,
+  "targets": [
+    {
+      "id": "Microsoft.VisualStudio.Services"
+    }
+  ],
+  "icons": {
+    "default": "images/icon.png"
+  },
+  "demands": [
+    "contribution/ms.vss-dashboards-web.widget-sdk-version-2", 
+    "contribution/ms.vss-web.charts-service"
+  ],
+  "contributions": [
+    {
+      "id": "active-pr-overview-widget.Configuration",
+      "type": "ms.vss-dashboards-web.widget-configuration",
+      "targets": [
+        "ms.vss-dashboards-web.widget-configuration"
+      ],
+      "properties": {
+        "name": "Active PR Overview Configuration",
+        "description": "Select projects or teams to filter pull request overview.",
+        "uri": "configuration.html"
+      }
+    },
+    {
+      "id": "active-pr-overview-widget",
+      "type": "ms.vss-dashboards-web.widget",
+      "description": "Displays active pull requests from configured projects or teams.",
+      "targets": [
+        "ms.vss-dashboards-web.widget-catalog",
+        ".active-pr-overview-widget.Configuration"
+      ],
+      "properties": {
+        "name": "Active PR Overview",
+        "description": "Displays active pull requests from configured projects or teams.",
+        "catalogIconUrl": "images/icon.png",
+        "previewImageUrl": "images/preview.png",
+        "uri": "index.html",
+        "isNameConfigurable": true,
+        "supportedSizes": [
+          { "rowSpan": 2, "columnSpan": 2 },
+          { "rowSpan": 2, "columnSpan": 3 },
+          { "rowSpan": 3, "columnSpan": 3 },
+          { "rowSpan": 3, "columnSpan": 4 },
+          { "rowSpan": 4, "columnSpan": 4 },
+          { "rowSpan": 3, "columnSpan": 5 },
+          { "rowSpan": 5, "columnSpan": 5 },
+          { "rowSpan": 3, "columnSpan": 6 },
+          { "rowSpan": 3, "columnSpan": 7 },
+          { "rowSpan": 3, "columnSpan": 8 }
+        ],
+        "supportedScopes": [ "project_team" ]
+      }
+    }
+  ],
+  "files": [
+    { "path": "images", "addressable": true },
+    { "path": "scripts", "addressable": true },
+    { "path": "configuration.html", "addressable": true },
+    { "path": "index.html", "addressable": true }
+  ],
+  "categories": [
+    "Code", "Collaboration"
+  ],
+  "content": {
+    "details": {
+      "path": "sum.md"
+    }
+  },
+  "tags": [
+    "Dashboard", "Widget", "Pull Request", "Code", "Collaboration"
+  ],
+  "scopes": [
+    "vso.code",
+    "vso.project"
+  ]
+}

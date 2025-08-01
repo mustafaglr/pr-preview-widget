@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <script src="scripts/VSS.SDK.min.js"></script>
+    <style>
+        body, html, .widget {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Segoe UI", Arial, sans-serif;
+            color: #333;
+            background-color: #fcfcfc;
+        }
+
+        .widget {
+            display: flex;
+            flex-direction: column;
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            background-color: #fff;
+        }
+
+        .title {
+            padding: 12px 15px;
+            margin: 0;
+            font-size: 18px;
+            color: #2c3e50;
+            background-color: #f7f9fc;
+            border-bottom: 1px solid #e9eef5;
+            font-weight: 600;
+        }
+
+        .widget-content {
+            flex-grow: 1;
+            overflow-y: auto;
+            overflow-x: auto;
+            padding: 0 10px 10px;
+        }
+
+        .pr-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            min-width: 1100px; /* Min genişlik daha da artırıldı */
+            position: relative;
+        }
+
+        .pr-list-header {
+            display: flex;
+            padding: 10px 8px;
+            font-weight: 600;
+            color: #666;
+            background-color: #fdfdfe;
+            border-bottom: 1px solid #e0e6ed;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+        }
+
+        .pr-list-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 8px;
+            margin-top: 6px;
+            background-color: #ffffff;
+            border-radius: 4px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+            transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+            cursor: pointer;
+            font-size: 13px;
+            position: relative;
+        }
+
+        .pr-list-item:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+        }
+
+        .pr-list-header > div,
+        .pr-list-item > div {
+            flex-basis: 0;
+            flex-grow: 1;
+            padding: 0 6px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            position: relative;
+        }
+
+        .col-project { flex-grow: 1; min-width: 100px; max-width: 140px; }
+        .col-repo { flex-grow: 1.3; min-width: 130px; max-width: 180px; }
+        .col-source-branch, .col-target-branch { flex-grow: 1.5; min-width: 150px; max-width: 220px; } /* Yeni kolonlar */
+        .col-title { flex-grow: 2.5; min-width: 200px; max-width: 300px; }
+        .col-createdby { flex-grow: 0.8; min-width: 100px; max-width: 180px; display: flex; align-items: center; gap: 6px; }
+        .col-createddate { flex-grow: 1.5; min-width: 140px; max-width: 200px; margin-left: 12px; color: #555; }
+
+        .pr-list-item .col-title span {
+            color: #0078d4;
+            font-weight: 500;
+        }
+
+        .pr-list-item:hover .col-title span {
+            text-decoration: underline;
+            color: #005a9e;
+        }
+
+        .user-avatar {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background-color: #e0e0e0;
+            color: #777;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 500;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .user-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .user-avatar .initials {
+            text-transform: uppercase;
+        }
+
+        .empty-message {
+            padding: 20px;
+            text-align: center;
+            color: #777;
+            font-size: 14px;
+            background-color: #fcfcfc;
+            border-radius: 4px;
+            margin-top: 8px;
+            box-shadow: none;
+        }
+
+        .empty-message.loading {
+            color: #0078d4;
+            font-weight: 500;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="widget">
+        <h2 class="title">Active Pull Requests</h2>
+        <div id="widget-content" class="widget-content">
+            <div id="pr-container"></div>
+        </div>
+    </div>
+</body>
+
+<script type="text/javascript">
+    VSS.init({ explicitNotifyLoaded: true, usePlatformStyles: true, usePlatformScripts: true });
+
+    VSS.require([
+        "TFS/Dashboards/WidgetHelpers",
+        "TFS/Core/RestClient",
+        "TFS/VersionControl/GitRestClient"
+    ], function (WidgetHelpers, TFS_Core, GitRestClient) {
+
+        function getInitials(name) {
+            if (!name) return '?';
+            const parts = name.split(' ');
+            return parts.length === 1
+                ? parts[0].charAt(0).toUpperCase()
+                : (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+        }
+
+        
+        function getShortBranchName(fullBranchName) {
+            if (!fullBranchName) return '';
+            const prefixes = ["refs/heads/", "refs/remotes/", "refs/pull/"];
+            for (let prefix of prefixes) {
+                if (fullBranchName.startsWith(prefix)) {
+                    let name = fullBranchName.substring(prefix.length);
+                    if (name.endsWith('/merge')) {
+                        name = name.substring(0, name.length - '/merge'.length);
+                    } else if (name.endsWith('/head')) {
+                        name = name.substring(0, name.length - '/head'.length);
+                    }
+                    return name;
+                }
+            }
+            return fullBranchName;
+        }
+
+        VSS.register("active-pr-overview-widget", function () {
+            return {
+                load: async function (widgetSettings) {
+                    const prContainer = document.getElementById("pr-container");
+                    prContainer.innerHTML = '<div class="empty-message loading">Loading pull requests...</div>';
+
+                    const allPRs = [];
+                    const settings = JSON.parse(widgetSettings.customSettings.data || "{}");
+                    const includeAll = settings.includeAllProjects ?? false;
+                    const allowedProjects = settings.allowedProjects ?? [];
+                    const reviewerTeam = settings.reviewerTeam ?? "";
+                    const allowedRegex = settings.allowedProjectsRegex ?? "";
+                    
+                    const sourceBranchRegex = settings.sourceBranchRegex || "";
+                    const targetBranchRegex = settings.targetBranchRegex || "";
+
+                    try {
+                        const coreClient = TFS_Core.getClient();
+                        const gitClient = GitRestClient.getClient();
+                        const projectRefs = await coreClient.getProjects();
+                        const vssWebContext = VSS.getWebContext();
+                        const devOpsBaseUrl = vssWebContext.host.uri;
+
+                        const projectPromises = projectRefs.map(async project => {
+                            if (!includeAll) {
+                                const projectName = project.name;
+                                const isExplicitlyAllowed = allowedProjects.includes(projectName);
+                                const isRegexMatch = allowedRegex ? new RegExp(allowedRegex, "i").test(projectName) : false;
+
+                                if (!isExplicitlyAllowed && !isRegexMatch) return;
+                            }
+
+                            const repos = await gitClient.getRepositories(project.id);
+
+                            const repoPromises = repos.map(async repo => {
+                                
+                                const prs = await gitClient.getPullRequests(repo.id, { status: 1 }, project.id);
+
+                                prs.forEach(pr => {
+                                    const reviewers = pr.reviewers || [];
+                                    const reviewerMatch = reviewerTeam
+                                        ? reviewers.some(r =>
+                                            (r.uniqueName || "").toLowerCase().includes(reviewerTeam.toLowerCase()))
+                                        : true;
+
+                                    
+                                    
+                                    const sourceBranchMatch = sourceBranchRegex
+                                        ? new RegExp(sourceBranchRegex, "i").test(pr.sourceRefName)
+                                        : true;
+                                    const targetBranchMatch = targetBranchRegex
+                                        ? new RegExp(targetBranchRegex, "i").test(pr.targetRefName)
+                                        : true;
+                                    
+                                    
+                                    if (reviewerMatch && sourceBranchMatch && targetBranchMatch) {
+                                        const fullPrUrl = `${devOpsBaseUrl}${project.name}/_git/${repo.name}/pullrequest/${pr.pullRequestId}`;
+
+                                        allPRs.push({
+                                            project: project.name,
+                                            repo: repo.name,
+                                            title: pr.title,
+                                            sourceBranch: getShortBranchName(pr.sourceRefName),
+                                            targetBranch: getShortBranchName(pr.targetRefName),
+                                            createdBy: pr.createdBy.displayName,
+                                            createdByIdentityUrl: pr.createdBy.imageUrl,
+                                            createdDate: pr.creationDate,
+                                            webUrl: fullPrUrl
+                                        });
+                                    }
+                                });
+                            });
+
+                            await Promise.all(repoPromises);
+                        });
+
+                        await Promise.all(projectPromises);
+
+                        allPRs.sort((a, b) => new Date(b.createdDate) - new Date(a.createdDate));
+                        prContainer.innerHTML = '';
+
+                        if (allPRs.length > 0) {
+                            const prList = document.createElement("ul");
+                            prList.classList.add("pr-list");
+
+                            const headerItem = document.createElement('li');
+                            headerItem.classList.add('pr-list-header');
+                            headerItem.innerHTML = `
+                                <div class="col-project">Project</div>
+                                <div class="col-repo">Repo</div>
+                                <div class="col-source-branch">Source Branch</div>
+                                <div class="col-target-branch">Target Branch</div>
+                                <div class="col-title">Title</div>
+                                <div class="col-createddate">Created Date</div>
+                                <div class="col-createdby">Creator</div>
+                            `;
+
+                            prList.appendChild(headerItem);
+
+                            allPRs.forEach(pr => {
+                                const listItem = document.createElement("li");
+                                listItem.classList.add("pr-list-item");
+
+                                const avatarHtml = pr.createdByIdentityUrl
+                                    ? `<img src="${pr.createdByIdentityUrl}" alt="${pr.createdBy}">`
+                                    : `<span class="initials">${getInitials(pr.createdBy)}</span>`;
+
+                                listItem.innerHTML = `
+                                    <div class="col-project">${pr.project}</div>
+                                    <div class="col-repo">${pr.repo}</div>
+                                    <div class="col-source-branch" title="${pr.sourceBranch}">${pr.sourceBranch}</div>
+                                    <div class="col-target-branch" title="${pr.targetBranch}">${pr.targetBranch}</div>
+                                    <div class="col-title">
+                                        <a href="${pr.webUrl}" target="_top" rel="noopener noreferrer">${pr.title}</a>
+                                    </div>
+                                    <div class="col-createddate">${new Date(pr.createdDate).toLocaleString()}</div>
+                                    <div class="col-createdby">
+                                        <div class="user-avatar">${avatarHtml}</div>
+                                        <span>${pr.createdBy}</span>
+                                    </div>
+                                `;
+
+                                listItem.addEventListener("click", () => {
+                                    window.open(pr.webUrl, "_top");
+                                });
+
+                                prList.appendChild(listItem);
+                            });
+
+                            prContainer.appendChild(prList);
+                        } else {
+                            prContainer.innerHTML = '<div class="empty-message">No active pull requests to display.</div>';
+                        }
+
+                        return WidgetHelpers.WidgetStatusHelper.Success();
+                    } catch (err) {
+                        console.error("Error fetching PRs", err);
+                        prContainer.innerHTML = `<div class="empty-message" style="color: red;">Error loading pull requests: ${err.message}</div>`;
+                        return WidgetHelpers.WidgetStatusHelper.Failure("Failed to load pull requests: " + err.message);
+                    }
+                }
+            };
+        });
+
+        VSS.notifyLoadSucceeded();
+    });
+</script>
+
+</html>
